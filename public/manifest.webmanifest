@@ -1,0 +1,20 @@
+{
+  "name": "Contin Player",
+  "short_name": "Contin",
+  "description": "匯入 MP4 播放清單、記住觀看進度，下一次從原本的位置繼續。",
+  "lang": "zh-Hant",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
