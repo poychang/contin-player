@@ -35,7 +35,10 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.match(playlistStore, /indexedDB\.open\(DATABASE_NAME, DATABASE_VERSION\)/);
   assert.match(playlistStore, /const PLAYLIST_STORE = "playlists"/);
   assert.match(playlistStore, /savePlaybackProgress/);
-  assert.deepEqual(JSON.parse(hostingConfig), { d1: null, r2: null });
+  const parsedHostingConfig = JSON.parse(hostingConfig);
+  assert.match(parsedHostingConfig.project_id, /^appgprj_/);
+  assert.equal(parsedHostingConfig.d1, null);
+  assert.equal(parsedHostingConfig.r2, null);
   assert.match(packageJson, /"@videojs\/react": "10\.0\.0-beta\.25"/);
   assert.doesNotMatch(packageJson, /drizzle|db:migrate/i);
   assert.doesNotMatch(app, /\/api\/|requestJson|fetch\(/);
