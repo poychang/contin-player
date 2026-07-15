@@ -3,18 +3,21 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("defines the Contin Player application shell", async () => {
-  const [page, layout, app] = await Promise.all([
+  const [page, layout, client, app] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ContinPlayerClient.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ContinPlayerApp.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /<ContinPlayerApp \/>/);
+  assert.match(page, /<ContinPlayerClient \/>/);
   assert.match(layout, /Contin — 你的連續播放空間/);
   assert.match(layout, /manifest:\s*"\/manifest\.webmanifest"/);
+  assert.match(client, /ssr:\s*false/);
+  assert.match(client, /import\("\.\/ContinPlayerApp"\)/);
   assert.match(app, /新增清單/);
   assert.match(app, /@videojs\/react/);
-  assert.doesNotMatch(`${page}\n${layout}\n${app}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
+  assert.doesNotMatch(`${page}\n${layout}\n${client}\n${app}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
 test("ships PWA assets and browser-only persistence", async () => {

@@ -1,5 +1,5 @@
-import { ContinPlayerApp } from "./components/ContinPlayerApp";
+import { ContinPlayerClient } from "./components/ContinPlayerClient";
 
 export default function Home() {
-  return <ContinPlayerApp />;
+  return <ContinPlayerClient />;
 }
