@@ -1,10 +1,10 @@
 # Contin Player
 
-Contin Player 是一個以 Video.js v10 建立的 PWA 影片播放器。它可以匯入多份 `list.txt`、保存播放清單與每部影片的觀看進度，並在影片結束後接續播放下一部。
+Contin Player 是一個以 Video.js v10 建立的 PWA 影片播放器。它可以匯入多份 `playlist.txt`、保存播放清單與每部影片的觀看進度，並在影片結束後接續播放下一部。
 
 ## 功能
 
-- 從本機匯入 `list.txt`，自訂播放清單名稱
+- 從本機匯入 `playlist.txt`，自訂播放清單名稱
 - 透過下拉選單切換多個播放清單
 - 重新命名、用新檔案更新或刪除播放清單
 - 各清單分別記住目前影片與播放秒數
@@ -15,7 +15,7 @@ Contin Player 是一個以 Video.js v10 建立的 PWA 影片播放器。它可�
 - 觸控裝置雙擊播放器左右區域快退／快進
 - 可安裝的 PWA 應用程式殼層
 
-## list.txt 格式
+## playlist.txt 格式
 
 使用 UTF-8 純文字檔，每行放置一個完整 MP4 URL：
 
@@ -37,7 +37,7 @@ https://media.example.com/show/show_S1_EP02.mp4
 - Service Worker + Web App Manifest：PWA 應用程式殼層
 - OpenAI Sites：建置與部署
 
-本專案沒有後端資料庫，也沒有播放清單 API。原始 `list.txt` 只在瀏覽器內解析；清單名稱、影片 URL、排序與觀看進度全部保存在目前瀏覽器的 IndexedDB。MP4 影片仍從原始 URL 串流，不會上傳到 Contin Player。
+本專案沒有後端資料庫，也沒有播放清單 API。原始 `playlist.txt` 只在瀏覽器內解析；清單名稱、影片 URL、排序與觀看進度全部保存在目前瀏覽器的 IndexedDB。MP4 影片仍從原始 URL 串流，不會上傳到 Contin Player。
 
 ## 本機開發
 

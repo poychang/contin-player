@@ -311,7 +311,7 @@ function PlaylistModal({
     event.preventDefault();
     if (!name.trim()) return setError("請輸入播放清單名稱。");
     if (mode === "create" && !parsed?.items.length) {
-      return setError("請選擇包含有效 MP4 網址的 list.txt。");
+      return setError("請選擇包含有效 MP4 網址的 playlist.txt。");
     }
     if (parsed && !parsed.items.length) return setError("檔案中沒有有效的 MP4 網址。");
 
@@ -363,13 +363,13 @@ function PlaylistModal({
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
-            placeholder="例如：軍師聯盟"
+            placeholder="例如：我的撥放清單"
             autoFocus
           />
 
           <label className="file-drop" htmlFor="playlist-file">
             <span className="file-mark" aria-hidden="true">＋</span>
-            <strong>{filename || (mode === "edit" ? "選擇新的 list.txt（選填）" : "選擇 list.txt")}</strong>
+            <strong>{filename || (mode === "edit" ? "選擇新的 playlist.txt（選填）" : "選擇 playlist.txt")}</strong>
             <small>每行一個完整的 MP4 網址，最多 500 部</small>
           </label>
           <input
@@ -573,7 +573,7 @@ export function ContinPlayerApp() {
         <section className="empty-state">
           <span className="empty-kicker">YOUR NEXT EPISODE STARTS HERE</span>
           <h1>把清單交給 Contin，<br />從此不再找上次看到哪裡。</h1>
-          <p>匯入一份每行一個 MP4 網址的 list.txt。Contin 會記住每個播放清單、每一部影片，以及你停下的位置。</p>
+          <p>匯入一份每行一個 MP4 網址的 playlist.txt。Contin 會記住每個播放清單、每一部影片，以及你停下的位置。</p>
           <button className="button primary hero-button" type="button" onClick={() => setModal("create")}>匯入第一個播放清單</button>
           <div className="empty-features" aria-label="主要功能">
             <span><strong>01</strong> 自動接續下一部</span>
