@@ -35,6 +35,9 @@ import {
 
 const Player = createPlayer({ features: videoFeatures });
 const SAVE_INTERVAL_MS = 10_000;
+const MAX_LOCAL_MEDIA_BYTES = 512 * 1024 * 1024;
+
+type RangeSupport = "checking" | "supported" | "unsupported" | "unknown";
 
 interface ParsedFile {
   items: PlaylistInputItem[];
@@ -111,8 +114,21 @@ function PlayerPanel({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeApplied = useRef(false);
   const lastSavedAt = useRef(0);
+  const pendingSeekTarget = useRef<number | null>(null);
+  const failedSeekTarget = useRef<number | null>(null);
+  const fallbackTarget = useRef<number | null>(null);
+  const resumeAfterFallback = useRef(false);
+  const fallbackLoading = useRef(false);
+  const fallbackController = useRef<AbortController | null>(null);
+  const localMediaUrl = useRef<string | null>(null);
+  const usingLocalMedia = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [playlistFinished, setPlaylistFinished] = useState(false);
+  const [playbackUrl, setPlaybackUrl] = useState(item.url);
+  const [rangeSupport, setRangeSupport] = useState<RangeSupport>("checking");
+  const [usingLocalCopy, setUsingLocalCopy] = useState(false);
+  const [loadingLocalCopy, setLoadingLocalCopy] = useState(false);
+  const [mediaSourceError, setMediaSourceError] = useState("");
 
   const saveProgress = useCallback(
     (media: HTMLVideoElement, completed = false) => {
@@ -156,9 +172,109 @@ function PlayerPanel({
     };
   }, [saveProgress]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch(item.url, {
+      headers: { Range: "bytes=0-0" },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const supportsRange = response.status === 206;
+        if (supportsRange) setRangeSupport("supported");
+        else if (response.ok) setRangeSupport("unsupported");
+        else setRangeSupport("unknown");
+        await response.body?.cancel();
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setRangeSupport("unknown");
+      });
+
+    return () => controller.abort();
+  }, [item.url]);
+
+  useEffect(
+    () => () => {
+      fallbackController.current?.abort();
+      if (localMediaUrl.current) URL.revokeObjectURL(localMediaUrl.current);
+    },
+    [],
+  );
+
+  const loadLocalCopy = useCallback(async () => {
+    if (fallbackLoading.current || usingLocalMedia.current) return;
+
+    const media = videoRef.current;
+    const controller = new AbortController();
+    fallbackController.current = controller;
+    fallbackLoading.current = true;
+    const currentTime = media?.currentTime ?? item.currentTime;
+    fallbackTarget.current =
+      failedSeekTarget.current !== null
+        ? Math.max(failedSeekTarget.current, currentTime)
+        : pendingSeekTarget.current ?? currentTime;
+    resumeAfterFallback.current = media ? !media.paused : false;
+    setLoadingLocalCopy(true);
+    setMediaSourceError("");
+
+    try {
+      const response = await fetch(item.url, { signal: controller.signal });
+      if (!response.ok) throw new Error(`影片下載失敗（HTTP ${response.status}）。`);
+
+      const contentLength = Number(response.headers.get("content-length"));
+      if (!Number.isFinite(contentLength) || contentLength <= 0) {
+        throw new Error("影片來源未提供檔案大小，無法安全地完整載入。");
+      }
+      if (contentLength > MAX_LOCAL_MEDIA_BYTES) {
+        throw new Error("影片超過 512 MB，請改由來源伺服器啟用 HTTP Range Requests。");
+      }
+
+      const blob = await response.blob();
+      if (controller.signal.aborted) return;
+      if (blob.size > MAX_LOCAL_MEDIA_BYTES) {
+        throw new Error("影片超過 512 MB，請改由來源伺服器啟用 HTTP Range Requests。");
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      if (localMediaUrl.current) URL.revokeObjectURL(localMediaUrl.current);
+      localMediaUrl.current = objectUrl;
+      usingLocalMedia.current = true;
+      setUsingLocalCopy(true);
+      setRangeSupport("supported");
+      setPlaybackUrl(objectUrl);
+    } catch (reason) {
+      if (reason instanceof DOMException && reason.name === "AbortError") return;
+      fallbackTarget.current = null;
+      pendingSeekTarget.current = null;
+      resumeAfterFallback.current = false;
+      setMediaSourceError(
+        reason instanceof Error
+          ? `${reason.message} 若是跨網域影片，來源也必須允許 CORS。`
+          : "無法完整載入影片；請讓來源伺服器支援 HTTP Range Requests。",
+      );
+    } finally {
+      if (fallbackController.current === controller) fallbackController.current = null;
+      fallbackLoading.current = false;
+      if (!controller.signal.aborted) setLoadingLocalCopy(false);
+    }
+  }, [item.currentTime, item.url]);
+
   const onLoadedMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
     const media = event.currentTarget;
     videoRef.current = media;
+    if (usingLocalMedia.current && fallbackTarget.current !== null) {
+      const seekTo = Math.max(0, Math.min(fallbackTarget.current, media.duration || Infinity));
+      fallbackTarget.current = null;
+      pendingSeekTarget.current = null;
+      failedSeekTarget.current = null;
+      media.currentTime = seekTo;
+      if (resumeAfterFallback.current) {
+        resumeAfterFallback.current = false;
+        void media.play().catch(() => setAutoplayBlocked(true));
+      }
+      return;
+    }
     if (!resumeApplied.current) {
       const resumeAt = Math.max(0, item.currentTime);
       if (resumeAt > 1 && resumeAt < media.duration - 1) media.currentTime = resumeAt;
@@ -170,9 +286,41 @@ function PlayerPanel({
   };
 
   const onTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
+    const requestedTime = pendingSeekTarget.current;
+    if (
+      !usingLocalMedia.current &&
+      requestedTime !== null &&
+      Math.abs(event.currentTarget.currentTime - requestedTime) > 1.5
+    ) {
+      return;
+    }
+    if (
+      !usingLocalMedia.current &&
+      failedSeekTarget.current !== null &&
+      event.currentTarget.currentTime < 1
+    ) {
+      return;
+    }
     if (Date.now() - lastSavedAt.current >= SAVE_INTERVAL_MS) {
       saveProgress(event.currentTarget);
     }
+  };
+
+  const onSeeking = (event: SyntheticEvent<HTMLVideoElement>) => {
+    if (!usingLocalMedia.current) pendingSeekTarget.current = event.currentTarget.currentTime;
+  };
+
+  const onSeeked = (event: SyntheticEvent<HTMLVideoElement>) => {
+    const requestedTime = pendingSeekTarget.current;
+    if (usingLocalMedia.current || requestedTime === null) return;
+    if (Math.abs(event.currentTarget.currentTime - requestedTime) > 1.5) {
+      failedSeekTarget.current = requestedTime;
+      pendingSeekTarget.current = null;
+      setRangeSupport("unsupported");
+      return;
+    }
+    pendingSeekTarget.current = null;
+    failedSeekTarget.current = null;
   };
 
   const onEnded = (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -202,24 +350,41 @@ function PlayerPanel({
 
       <Player.Provider>
         <div className="video-stage">
-          <VideoSkin className="contin-video-skin">
+          <VideoSkin
+            className={`contin-video-skin${rangeSupport === "unsupported" ? " seek-unavailable" : ""}`}
+          >
             <Video
               ref={videoRef}
-              src={item.url}
+              src={playbackUrl}
               playsInline
               preload="metadata"
               onLoadedMetadata={onLoadedMetadata}
               onTimeUpdate={onTimeUpdate}
-              onPause={(event) => saveProgress(event.currentTarget)}
+              onSeeking={onSeeking}
+              onSeeked={onSeeked}
+              onPause={(event) => {
+                const requestedTime = pendingSeekTarget.current;
+                if (
+                  (requestedTime === null ||
+                    Math.abs(event.currentTarget.currentTime - requestedTime) <= 1.5) &&
+                  (failedSeekTarget.current === null || event.currentTarget.currentTime >= 1)
+                ) {
+                  saveProgress(event.currentTarget);
+                }
+              }}
               onEnded={onEnded}
             />
           </VideoSkin>
-          <Hotkey keys="ArrowLeft" action="seekStep" value={-10} />
-          <Hotkey keys="ArrowRight" action="seekStep" value={10} />
-          <Hotkey keys="j" action="seekStep" value={-10} />
-          <Hotkey keys="l" action="seekStep" value={10} />
-          <Gesture type="doubletap" region="left" action="seekStep" value={-10} />
-          <Gesture type="doubletap" region="right" action="seekStep" value={10} />
+          {rangeSupport !== "unsupported" && (
+            <>
+              <Hotkey keys="ArrowLeft" action="seekStep" value={-10} />
+              <Hotkey keys="ArrowRight" action="seekStep" value={10} />
+              <Hotkey keys="j" action="seekStep" value={-10} />
+              <Hotkey keys="l" action="seekStep" value={10} />
+              <Gesture type="doubletap" region="left" action="seekStep" value={-10} />
+              <Gesture type="doubletap" region="right" action="seekStep" value={10} />
+            </>
+          )}
         </div>
 
         <div className="transport-bar">
@@ -234,6 +399,7 @@ function PlayerPanel({
           <SeekButton
             seconds={-10}
             label="倒退 10 秒"
+            disabled={rangeSupport === "unsupported"}
             render={(props) => (
               <button {...props} type="button" className="transport-button seek">
                 <span aria-hidden="true">↶</span> 10 秒
@@ -243,6 +409,7 @@ function PlayerPanel({
           <SeekButton
             seconds={10}
             label="快進 10 秒"
+            disabled={rangeSupport === "unsupported"}
             render={(props) => (
               <button {...props} type="button" className="transport-button seek">
                 10 秒 <span aria-hidden="true">↷</span>
@@ -260,6 +427,19 @@ function PlayerPanel({
         </div>
       </Player.Provider>
 
+      {rangeSupport === "unsupported" && !usingLocalCopy && (
+        <div className="media-source-warning" role="alert">
+          <p>
+            影片來源不支援 HTTP Range Requests，因此拖曳、倒退或快進會跳回開頭。
+            可完整載入這部影片後再使用跳轉功能。
+          </p>
+          <button type="button" onClick={() => void loadLocalCopy()} disabled={loadingLocalCopy}>
+            {loadingLocalCopy ? "正在完整載入…" : "完整載入影片（上限 512 MB）"}
+          </button>
+        </div>
+      )}
+      {usingLocalCopy && <p className="media-source-ready">影片已完整載入，現在可以正常拖曳與跳轉。</p>}
+      {mediaSourceError && <p className="media-source-error" role="alert">{mediaSourceError}</p>}
       {item.currentTime > 1 && !item.completed && (
         <p className="resume-note">已從 {formatTime(item.currentTime)} 接續</p>
       )}

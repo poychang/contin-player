@@ -44,5 +44,8 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.equal(parsedHostingConfig.r2, null);
   assert.match(packageJson, /"@videojs\/react": "10\.0\.0-beta\.25"/);
   assert.doesNotMatch(packageJson, /drizzle|db:migrate/i);
-  assert.doesNotMatch(app, /\/api\/|requestJson|fetch\(/);
+  assert.match(app, /Range: "bytes=0-0"/);
+  assert.match(app, /URL\.createObjectURL\(blob\)/);
+  assert.match(app, /HTTP Range Requests/);
+  assert.doesNotMatch(app, /\/api\/|requestJson/);
 });

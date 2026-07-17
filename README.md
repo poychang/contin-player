@@ -27,7 +27,7 @@ https://media.example.com/show/show_S1_EP02.mp4
 
 解析器支援 BOM、LF、CRLF 與含查詢參數的 MP4 URL。無效網址和非 `.mp4` 路徑會在匯入預覽中標示並略過；單一清單最多 500 部影片。
 
-影片伺服器應支援 HTTPS、正確的 `video/mp4` Content-Type 與 HTTP Range Requests，才能穩定拖曳進度。若儲存空間限制跨來源媒體，也需要允許正式 Sites 網域存取。
+影片伺服器應支援 HTTPS、正確的 `video/mp4` Content-Type 與 HTTP Range Requests，才能穩定拖曳進度。Contin 會以 `Range: bytes=0-0` 檢查來源；若伺服器忽略 Range 並回傳完整檔案，播放器會停用跳轉並提供「完整載入影片」的降級方案（單部上限 512 MB）。跨來源 MP4 必須允許正式 Sites 網域透過 CORS 讀取，才能使用此降級方案。
 
 ## 技術架構
 
