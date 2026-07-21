@@ -48,6 +48,7 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.match(app, /headers\.get\("accept-ranges"\)/);
   assert.match(app, /headers\.get\("content-range"\)/);
   assert.match(app, /rangeSupport !== "supported"/);
+  assert.match(app, /const MAX_LOCAL_MEDIA_MB = 50/);
   assert.match(app, /URL\.createObjectURL\(blob\)/);
   assert.match(app, /HTTP Range Requests/);
   assert.doesNotMatch(app, /\/api\/|requestJson/);

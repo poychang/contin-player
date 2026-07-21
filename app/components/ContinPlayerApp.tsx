@@ -35,7 +35,8 @@ import {
 
 const Player = createPlayer({ features: videoFeatures });
 const SAVE_INTERVAL_MS = 10_000;
-const MAX_LOCAL_MEDIA_BYTES = 512 * 1024 * 1024;
+const MAX_LOCAL_MEDIA_MB = 50;
+const MAX_LOCAL_MEDIA_BYTES = MAX_LOCAL_MEDIA_MB * 1024 * 1024;
 
 type RangeSupport = "checking" | "supported" | "unsupported" | "unknown";
 
@@ -232,13 +233,17 @@ function PlayerPanel({
         throw new Error("影片來源未提供檔案大小，無法安全地完整載入。");
       }
       if (contentLength > MAX_LOCAL_MEDIA_BYTES) {
-        throw new Error("影片超過 512 MB，請改由來源伺服器啟用 HTTP Range Requests。");
+        throw new Error(
+          `影片超過 ${MAX_LOCAL_MEDIA_MB} MB，請改由來源伺服器啟用 HTTP Range Requests。`,
+        );
       }
 
       const blob = await response.blob();
       if (controller.signal.aborted) return;
       if (blob.size > MAX_LOCAL_MEDIA_BYTES) {
-        throw new Error("影片超過 512 MB，請改由來源伺服器啟用 HTTP Range Requests。");
+        throw new Error(
+          `影片超過 ${MAX_LOCAL_MEDIA_MB} MB，請改由來源伺服器啟用 HTTP Range Requests。`,
+        );
       }
 
       const objectUrl = URL.createObjectURL(blob);
@@ -450,7 +455,9 @@ function PlayerPanel({
             可完整載入這部影片後再使用跳轉功能。
           </p>
           <button type="button" onClick={() => void loadLocalCopy()} disabled={loadingLocalCopy}>
-            {loadingLocalCopy ? "正在完整載入…" : "完整載入影片（上限 512 MB）"}
+            {loadingLocalCopy
+              ? "正在完整載入…"
+              : `完整載入影片（上限 ${MAX_LOCAL_MEDIA_MB} MB）`}
           </button>
         </div>
       )}
