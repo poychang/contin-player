@@ -55,5 +55,11 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.match(app, /const MAX_LOCAL_MEDIA_MB = 50/);
   assert.match(app, /URL\.createObjectURL\(blob\)/);
   assert.match(app, /HTTP Range Requests/);
+  assert.match(app, /keys="ArrowLeft" action="seekStep" value=\{-10\}/);
+  assert.match(app, /keys="ArrowRight" action="seekStep" value=\{10\}/);
+  assert.doesNotMatch(app, /<SeekButton/);
+  assert.match(app, /已從 \$\{formatTime\(resumeTime\)\} 接續/);
+  assert.match(app, /<kbd>J<\/kbd><kbd>←<\/kbd><small>倒退 10 秒<\/small>/);
+  assert.match(app, /<kbd>L<\/kbd><kbd>→<\/kbd><small>快進 10 秒<\/small>/);
   assert.doesNotMatch(app, /\/api\/|requestJson/);
 });

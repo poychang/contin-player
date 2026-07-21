@@ -3,7 +3,6 @@
 import {
   Gesture,
   Hotkey,
-  SeekButton,
   createPlayer,
 } from "@videojs/react";
 import { Video, VideoSkin, videoFeatures } from "@videojs/react/video";
@@ -115,6 +114,7 @@ function PlayerPanel({
   ) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [resumeTime] = useState(item.currentTime);
   const resumeApplied = useRef(false);
   const lastSavedAt = useRef(0);
   const pendingSeekTarget = useRef<number | null>(null);
@@ -371,6 +371,8 @@ function PlayerPanel({
 
       <Player.Provider>
         <div className="video-stage">
+          <Hotkey keys="ArrowLeft" action="seekStep" value={-10} />
+          <Hotkey keys="ArrowRight" action="seekStep" value={10} />
           <VideoSkin
             className={`contin-video-skin${rangeSupport !== "supported" ? " seek-unavailable" : ""}`}
           >
@@ -398,8 +400,6 @@ function PlayerPanel({
           </VideoSkin>
           {rangeSupport === "supported" && (
             <>
-              <Hotkey keys="ArrowLeft" action="seekStep" value={-10} />
-              <Hotkey keys="ArrowRight" action="seekStep" value={10} />
               <Hotkey keys="j" action="seekStep" value={-10} />
               <Hotkey keys="l" action="seekStep" value={10} />
               <Gesture type="doubletap" region="left" action="seekStep" value={-10} />
@@ -417,26 +417,9 @@ function PlayerPanel({
           >
             <span aria-hidden="true">‹</span> 上一部
           </button>
-          <SeekButton
-            seconds={-10}
-            label="倒退 10 秒"
-            disabled={rangeSupport !== "supported"}
-            render={(props) => (
-              <button {...props} type="button" className="transport-button seek">
-                <span aria-hidden="true">↶</span> 10 秒
-              </button>
-            )}
-          />
-          <SeekButton
-            seconds={10}
-            label="快進 10 秒"
-            disabled={rangeSupport !== "supported"}
-            render={(props) => (
-              <button {...props} type="button" className="transport-button seek">
-                10 秒 <span aria-hidden="true">↷</span>
-              </button>
-            )}
-          />
+          <p className="resume-note">
+            {resumeTime > 1 && !item.completed ? `已從 ${formatTime(resumeTime)} 接續` : ""}
+          </p>
           <button
             className="transport-button subtle"
             type="button"
@@ -465,9 +448,6 @@ function PlayerPanel({
       )}
       {usingLocalCopy && <p className="media-source-ready">影片已完整載入，現在可以正常拖曳與跳轉。</p>}
       {mediaSourceError && <p className="media-source-error" role="alert">{mediaSourceError}</p>}
-      {item.currentTime > 1 && !item.completed && (
-        <p className="resume-note">已從 {formatTime(item.currentTime)} 接續</p>
-      )}
       {autoplayBlocked && (
         <button
           className="notice-action"
@@ -805,9 +785,8 @@ export function ContinPlayerApp() {
             )}
             <div className="shortcut-hint">
               <span>快捷鍵</span>
-              <kbd>J</kbd><small>倒退</small>
-              <kbd>L</kbd><small>快進</small>
-              <kbd>←</kbd><kbd>→</kbd><small>10 秒</small>
+              <kbd>J</kbd><kbd>←</kbd><small>倒退 10 秒</small>
+              <kbd>L</kbd><kbd>→</kbd><small>快進 10 秒</small>
             </div>
           </div>
 
