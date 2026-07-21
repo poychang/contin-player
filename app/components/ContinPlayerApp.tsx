@@ -180,7 +180,12 @@ function PlayerPanel({
       signal: controller.signal,
     })
       .then(async (response) => {
-        const supportsRange = response.status === 206;
+        const acceptRanges = response.headers.get("accept-ranges")?.toLowerCase();
+        const contentRange = response.headers.get("content-range");
+        const supportsRange =
+          response.status === 206 &&
+          acceptRanges === "bytes" &&
+          /^bytes 0-0\/\d+$/i.test(contentRange ?? "");
         if (supportsRange) setRangeSupport("supported");
         else if (response.ok) setRangeSupport("unsupported");
         else setRangeSupport("unknown");
@@ -307,7 +312,16 @@ function PlayerPanel({
   };
 
   const onSeeking = (event: SyntheticEvent<HTMLVideoElement>) => {
-    if (!usingLocalMedia.current) pendingSeekTarget.current = event.currentTarget.currentTime;
+    if (usingLocalMedia.current) return;
+
+    const nextTarget = event.currentTarget.currentTime;
+    if (
+      pendingSeekTarget.current === null ||
+      nextTarget >= 1 ||
+      pendingSeekTarget.current < 1
+    ) {
+      pendingSeekTarget.current = nextTarget;
+    }
   };
 
   const onSeeked = (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -351,7 +365,7 @@ function PlayerPanel({
       <Player.Provider>
         <div className="video-stage">
           <VideoSkin
-            className={`contin-video-skin${rangeSupport === "unsupported" ? " seek-unavailable" : ""}`}
+            className={`contin-video-skin${rangeSupport !== "supported" ? " seek-unavailable" : ""}`}
           >
             <Video
               ref={videoRef}
@@ -375,7 +389,7 @@ function PlayerPanel({
               onEnded={onEnded}
             />
           </VideoSkin>
-          {rangeSupport !== "unsupported" && (
+          {rangeSupport === "supported" && (
             <>
               <Hotkey keys="ArrowLeft" action="seekStep" value={-10} />
               <Hotkey keys="ArrowRight" action="seekStep" value={10} />
@@ -399,7 +413,7 @@ function PlayerPanel({
           <SeekButton
             seconds={-10}
             label="倒退 10 秒"
-            disabled={rangeSupport === "unsupported"}
+            disabled={rangeSupport !== "supported"}
             render={(props) => (
               <button {...props} type="button" className="transport-button seek">
                 <span aria-hidden="true">↶</span> 10 秒
@@ -409,7 +423,7 @@ function PlayerPanel({
           <SeekButton
             seconds={10}
             label="快進 10 秒"
-            disabled={rangeSupport === "unsupported"}
+            disabled={rangeSupport !== "supported"}
             render={(props) => (
               <button {...props} type="button" className="transport-button seek">
                 10 秒 <span aria-hidden="true">↷</span>
@@ -427,10 +441,12 @@ function PlayerPanel({
         </div>
       </Player.Provider>
 
-      {rangeSupport === "unsupported" && !usingLocalCopy && (
+      {(rangeSupport === "unsupported" || rangeSupport === "unknown") && !usingLocalCopy && (
         <div className="media-source-warning" role="alert">
           <p>
-            影片來源不支援 HTTP Range Requests，因此拖曳、倒退或快進會跳回開頭。
+            {rangeSupport === "unsupported"
+              ? "影片來源未提供瀏覽器跳轉所需的完整 HTTP Range 回應，因此無法拖曳、倒退或快進。"
+              : "無法確認影片來源是否支援跳轉；請檢查來源的 CORS 與 HTTP Range 設定。"}
             可完整載入這部影片後再使用跳轉功能。
           </p>
           <button type="button" onClick={() => void loadLocalCopy()} disabled={loadingLocalCopy}>
