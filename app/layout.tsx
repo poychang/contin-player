@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Contin — 你的連續播放空間",
   description: "匯入 MP4 播放清單、記住觀看進度，下一次從原本的位置繼續。",
   applicationName: "Contin Player",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -40,6 +39,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant">
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       <body>
         {children}
         <PwaRegistrar />

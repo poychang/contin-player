@@ -109,11 +109,6 @@ button { color: inherit; }
 .finish-note { color: var(--accent-bright); }
 .notice-action { width: calc(100% - 28px); margin: 0 14px 14px; padding: 12px; cursor: pointer; color: #18130a; border: 0; border-radius: 8px; background: var(--accent); font-weight: 700; }
 .no-video { display: grid; min-height: 430px; place-items: center; color: var(--muted); }
-.shortcut-hint { display: flex; gap: 8px; align-items: center; margin: 16px 4px 0; color: #777b84; font-size: .75rem; }
-.shortcut-hint > span { margin-right: 4px; }
-.shortcut-hint kbd { min-width: 26px; padding: 4px 6px; color: #c4c5c9; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); text-align: center; }
-.shortcut-hint small { margin-right: 8px; }
-
 .queue-card { display: flex; height: var(--player-area-height, auto); min-height: 0; max-height: var(--player-area-height, calc(100vh - 134px)); flex-direction: column; overflow: hidden; }
 .queue-heading { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 22px 20px 15px; }
 .icon-button { display: grid; width: 38px; height: 38px; flex: none; cursor: pointer; color: var(--muted); border: 1px solid var(--line); border-radius: 9px; background: transparent; place-items: center; font-size: 1.1rem; }
@@ -178,7 +173,6 @@ button { color: inherit; }
   .now-playing h1 { font-size: 1.05rem; }
   .transport-bar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; }
   .media-source-warning { align-items: stretch; flex-direction: column; }
-  .shortcut-hint { flex-wrap: wrap; }
   .modal { padding: 21px; }
   .app-footer { gap: 15px; flex-direction: column; }
 }

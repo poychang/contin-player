@@ -13,7 +13,7 @@ test("defines the Contin Player application shell", async () => {
 
   assert.match(page, /<ContinPlayerClient \/>/);
   assert.match(layout, /Contin — 你的連續播放空間/);
-  assert.match(layout, /manifest:\s*"\/manifest\.webmanifest"/);
+  assert.match(layout, /rel="manifest" href="\/manifest\.webmanifest" crossOrigin="use-credentials"/);
   assert.match(client, /ssr:\s*false/);
   assert.match(client, /import\("\.\/ContinPlayerApp"\)/);
   assert.match(app, /新增清單/);
@@ -60,8 +60,8 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.match(app, /keys="ArrowRight" action="seekStep" value=\{10\}/);
   assert.doesNotMatch(app, /<SeekButton/);
   assert.match(app, /已從 \$\{formatTime\(resumeTime\)\} 接續/);
-  assert.match(app, /<kbd>J<\/kbd><kbd>←<\/kbd><small>倒退 10 秒<\/small>/);
-  assert.match(app, /<kbd>L<\/kbd><kbd>→<\/kbd><small>快進 10 秒<\/small>/);
+  assert.doesNotMatch(app, /快捷鍵|<kbd>/);
+  assert.doesNotMatch(app, /addEventListener\(["'](?:before)?unload["']/);
   assert.match(app, /new ResizeObserver\(updateHeight\)/);
   assert.match(app, /--player-area-height/);
   assert.match(styles, /height: var\(--player-area-height, auto\)/);

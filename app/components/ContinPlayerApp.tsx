@@ -812,11 +812,6 @@ export function ContinPlayerApp() {
                 <section className="player-card no-video">這個播放清單沒有可播放的影片。</section>
               )}
             </div>
-            <div className="shortcut-hint">
-              <span>快捷鍵</span>
-              <kbd>J</kbd><kbd>←</kbd><small>倒退 10 秒</small>
-              <kbd>L</kbd><kbd>→</kbd><small>快進 10 秒</small>
-            </div>
           </div>
 
           <aside className="queue-card" aria-label="待播清單">
