@@ -25,13 +25,14 @@ test("defines the Contin Player application shell", async () => {
 });
 
 test("ships PWA assets and browser-only persistence", async () => {
-  const [manifest, serviceWorker, playlistStore, packageJson, hostingConfig, app] = await Promise.all([
+  const [manifest, serviceWorker, playlistStore, packageJson, hostingConfig, app, styles] = await Promise.all([
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/playlist-store.ts", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ContinPlayerApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     access(new URL("../public/og.png", import.meta.url)),
   ]);
 
@@ -55,5 +56,15 @@ test("ships PWA assets and browser-only persistence", async () => {
   assert.match(app, /const MAX_LOCAL_MEDIA_MB = 50/);
   assert.match(app, /URL\.createObjectURL\(blob\)/);
   assert.match(app, /HTTP Range Requests/);
+  assert.match(app, /keys="ArrowLeft" action="seekStep" value=\{-10\}/);
+  assert.match(app, /keys="ArrowRight" action="seekStep" value=\{10\}/);
+  assert.doesNotMatch(app, /<SeekButton/);
+  assert.match(app, /已從 \$\{formatTime\(resumeTime\)\} 接續/);
+  assert.match(app, /<kbd>J<\/kbd><kbd>←<\/kbd><small>倒退 10 秒<\/small>/);
+  assert.match(app, /<kbd>L<\/kbd><kbd>→<\/kbd><small>快進 10 秒<\/small>/);
+  assert.match(app, /new ResizeObserver\(updateHeight\)/);
+  assert.match(app, /--player-area-height/);
+  assert.match(styles, /height: var\(--player-area-height, auto\)/);
+  assert.match(styles, /max-height: var\(--player-area-height, calc\(100vh - 134px\)\)/);
   assert.doesNotMatch(app, /\/api\/|requestJson/);
 });
