@@ -7,6 +7,7 @@ import {
 } from "@videojs/react";
 import { Video, VideoSkin, videoFeatures } from "@videojs/react/video";
 import {
+  type CSSProperties,
   type ChangeEvent,
   type FormEvent,
   type SyntheticEvent,
@@ -599,6 +600,8 @@ export function ContinPlayerApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
+  const [playerAreaHeight, setPlayerAreaHeight] = useState<number | null>(null);
+  const playerAreaRef = useRef<HTMLDivElement | null>(null);
 
   const loadPlaylist = useCallback(async (id: string) => {
     const loaded = await getPlaylist(id);
@@ -642,6 +645,22 @@ export function ContinPlayerApp() {
   useEffect(() => {
     queueMicrotask(() => void refresh());
   }, [refresh]);
+
+  useEffect(() => {
+    const playerArea = playerAreaRef.current;
+    if (!playerArea) return;
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(playerArea.getBoundingClientRect().height);
+      setPlayerAreaHeight((currentHeight) =>
+        currentHeight === nextHeight ? currentHeight : nextHeight,
+      );
+    };
+    const observer = new ResizeObserver(updateHeight);
+    updateHeight();
+    observer.observe(playerArea);
+    return () => observer.disconnect();
+  }, [detail?.playlist.id, currentItemId]);
 
   const selectPlaylist = async (id: string) => {
     setActivePlaylistId(id);
@@ -767,22 +786,32 @@ export function ContinPlayerApp() {
           </div>
         </section>
       ) : (
-        <div className="content-grid" id="top">
+        <div
+          className="content-grid"
+          id="top"
+          style={
+            playerAreaHeight
+              ? ({ "--player-area-height": `${playerAreaHeight}px` } as CSSProperties)
+              : undefined
+          }
+        >
           <div className="main-column">
-            {currentItem ? (
-              <PlayerPanel
-                key={currentItem.id}
-                playlistId={detail.playlist.id}
-                item={currentItem}
-                previous={previousItem}
-                next={nextItem}
-                autoPlay={autoPlayItemId === currentItem.id}
-                onSelect={selectItem}
-                onProgress={updateVisibleProgress}
-              />
-            ) : (
-              <section className="player-card no-video">這個播放清單沒有可播放的影片。</section>
-            )}
+            <div className="player-area" ref={playerAreaRef}>
+              {currentItem ? (
+                <PlayerPanel
+                  key={currentItem.id}
+                  playlistId={detail.playlist.id}
+                  item={currentItem}
+                  previous={previousItem}
+                  next={nextItem}
+                  autoPlay={autoPlayItemId === currentItem.id}
+                  onSelect={selectItem}
+                  onProgress={updateVisibleProgress}
+                />
+              ) : (
+                <section className="player-card no-video">這個播放清單沒有可播放的影片。</section>
+              )}
+            </div>
             <div className="shortcut-hint">
               <span>快捷鍵</span>
               <kbd>J</kbd><kbd>←</kbd><small>倒退 10 秒</small>
