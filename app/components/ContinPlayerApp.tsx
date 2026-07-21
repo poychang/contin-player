@@ -33,6 +33,8 @@ import {
   type PlaylistSummary,
 } from "../lib/playlist-store";
 
+declare const __BUILD_TIME__: string;
+
 const Player = createPlayer({ features: videoFeatures });
 const SAVE_INTERVAL_MS = 10_000;
 const MAX_LOCAL_MEDIA_MB = 50;
@@ -850,7 +852,7 @@ export function ContinPlayerApp() {
 
       <footer className="app-footer">
         <span>Contin Player</span>
-        <span>進度只保存在這個瀏覽器 · Powered by Video.js v10</span>
+        <span>版本：{__BUILD_TIME__} · 進度只保存在這個瀏覽器 · Powered by Video.js v10</span>
       </footer>
 
       {modal && (

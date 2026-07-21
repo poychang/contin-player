@@ -3,11 +3,12 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("defines the Contin Player application shell", async () => {
-  const [page, layout, client, app] = await Promise.all([
+  const [page, layout, client, app, viteConfig] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ContinPlayerClient.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ContinPlayerApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /<ContinPlayerClient \/>/);
@@ -17,6 +18,9 @@ test("defines the Contin Player application shell", async () => {
   assert.match(client, /import\("\.\/ContinPlayerApp"\)/);
   assert.match(app, /新增清單/);
   assert.match(app, /@videojs\/react/);
+  assert.match(app, /版本：\{__BUILD_TIME__\}/);
+  assert.match(viteConfig, /timeZone: "Asia\/Taipei"/);
+  assert.match(viteConfig, /define: \{ __BUILD_TIME__: JSON\.stringify\(buildTime\) \}/);
   assert.doesNotMatch(`${page}\n${layout}\n${client}\n${app}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 

@@ -2,6 +2,22 @@ import vinext from "vinext";
 import { defineConfig } from "vite";
 import { sites } from "./build/sites-vite-plugin";
 
+function formatBuildTime(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day} ${value.hour}:${value.minute}`;
+}
+
+const buildTime = formatBuildTime(new Date());
+
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
@@ -23,6 +39,7 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    define: { __BUILD_TIME__: JSON.stringify(buildTime) },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
